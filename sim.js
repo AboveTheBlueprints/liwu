@@ -34,11 +34,11 @@ function lwTarget(s) {
 }
 
 function lwMenu(s) {
-  if (s.phase === '走') return LW_WIN.concat(['回家']);
+  if (s.phase === '走') return LW_WIN.map(function (w) { return '看' + w; }).concat(['回家']);
   if (s.phase === '卖') return ['卖头发', '不卖'];
   if (s.phase === '买') {
     var r = [];
-    ['手套', '表链'].forEach(function (w) { if (LW_PRICE[w] <= s.money + 1e-9) r.push(w); });
+    ['手套', '表链'].forEach(function (w) { if (LW_PRICE[w] <= s.money + 1e-9) r.push('买' + w); });
     r.push('不买');
     return r;
   }
@@ -56,7 +56,8 @@ function lwStartNight(s) {
   }
   lwP(s, '吉姆下了班，你们一起走百老汇回家。');
   if (LW_COLD[d]) lwP(s, '今晚风大。吉姆没有手套，两只手冻得通红，揣在大衣兜里。');
-  lwP(s, '路过五个橱窗：' + LW_WIN.map(function (w) { return LW_DESC[w]; }).join('；') + '。');
+  if (d === 1) lwP(s, '路上有五个橱窗：' + LW_WIN.map(function (w) { return LW_DESC[w]; }).join('；') + '。');
+  else lwP(s, '又路过那五个橱窗：缎带、手套、梳子、表链、领子。');
 }
 
 function lwStop(s, w) {
@@ -69,7 +70,7 @@ function lwStop(s, w) {
     if (n === 0) lwP(s, '你在' + w + '那个橱窗前站住了。吉姆顺着你的眼睛看过去，看了一会儿橱窗，又看了看你。');
     else lwP(s, '你又在' + w + '前多站了一会儿。吉姆没催你，也在看。');
   } else if (w === '表链') {
-    if (n === 0) lwP(s, '你在首饰铺前站住了，看那条表链。吉姆往窗里瞟了一眼，手往兜里的表上按了按。');
+    if (n === 0) lwP(s, '你在首饰铺前站住了，看那条表链。吉姆往窗里瞟了一眼，手往他自己兜里的表上按了按。');
     else lwP(s, '你又看了一会儿表链。吉姆把手揣进兜里，往前走了半步等你。');
   } else {
     s.glove += 1;
@@ -101,7 +102,8 @@ function lwGoHome(s) {
   else if (s.sellNights === 2) line = '吃过饭，吉姆把表搁在桌上，拿袖子擦了擦表壳。';
   else line = '吃过饭，吉姆把表搁在桌上，上了弦，听了一会儿它走。';
   if (s.selfGlove) line += !(s.decided && !sell) ? '睡前他把兜里的零钱分成了两小堆。' : '';
-  lwP(s, line);
+  if (s.week.length && s.week[s.week.length - 1][2] === line) lwP(s, '吃过饭，跟昨晚一样，' + line.slice(4));
+  else lwP(s, line);
   s.week.push([LW_DATES[d - 1], s.stops.slice(), line]);
   s.stops = [];
   s.day += 1;
@@ -119,7 +121,7 @@ function lwAct(s, a) {
   if (lwMenu(s).indexOf(a) < 0) { lwP(s, '（这会儿不能“' + a + '”。）'); return; }
   if (s.phase === '走') {
     if (a === '回家') { lwP(s, s.stops.length ? '你们回家了。' : '你们一路没停，回家了。'); lwGoHome(s); }
-    else lwStop(s, a);
+    else lwStop(s, a.slice(1));
   } else if (s.phase === '卖') {
     if (a === '卖头发') {
       s.hair = false;
@@ -131,9 +133,9 @@ function lwAct(s, a) {
     lwP(s, '你出门去给吉姆挑礼物。手里有 ' + s.money.toFixed(2) + ' 块。');
   } else if (s.phase === '买') {
     if (a !== '不买') {
-      s.gift = a;
-      s.money -= LW_PRICE[a];
-      lwP(s, '你买了' + a + '，包好了，揣着回家。');
+      s.gift = a.slice(1);
+      s.money -= LW_PRICE[s.gift];
+      lwP(s, '你买了' + s.gift + '，包好了，揣着回家。');
     } else lwP(s, '你转了一下午，什么也没买，回家了。');
     s.phase = '完';
     lwEnding(s);
